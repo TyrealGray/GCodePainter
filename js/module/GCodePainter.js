@@ -9,11 +9,18 @@ define(function (require) {
     function GCodePainter() {
 
         this._worker = null;
+        this._canvas = null;
     }
 
     GCodePainter.prototype.init = function () {
 
+        this._initCanvas();
+
         this._initWorker();
+    };
+
+    GCodePainter.prototype._initCanvas = function () {
+
     };
 
     GCodePainter.prototype._initWorker = function () {
@@ -93,8 +100,20 @@ define(function (require) {
         return GCodeReader.getModelInfo();
     };
 
+    GCodePainter.prototype.getCanvas = function () {
+        return this._canvas;
+    };
+
     GCodePainter.prototype.getWorker = function () {
         return this._worker;
+    };
+
+    GCodePainter.prototype.paintLayer = function (layerNum) {
+        GCodeRender.renderLayer(layerNum);
+    };
+
+    GCodePainter.prototype.onWindowResize = function () {
+
     };
 
     return GCodePainter;

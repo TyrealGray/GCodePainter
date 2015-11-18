@@ -155,7 +155,10 @@ define(function (require, exports) {
 
 
     var startCanvas = function () {
-        canvas = document.getElementById('GCodeCanvas');
+        canvas = document.createElement('canvas');
+
+        document.getElementById('RenderView').appendChild(canvas);
+        //canvas = document.getElementById('GCodeCanvas');
 
         if (!canvas.getContext) {
             throw "exception";
@@ -170,44 +173,44 @@ define(function (require, exports) {
         ctx.lineCap = 'round';
         trackTransforms(ctx);
 
-        canvas.addEventListener('mousedown', function (evt) {
-            document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-            lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
-            lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
-            dragStart = ctx.transformedPoint(lastX, lastY);
-            dragged = false;
-        }, false);
-        canvas.addEventListener('mousemove', function (evt) {
-            lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
-            lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
-            dragged = true;
-            if (dragStart) {
-                var pt = ctx.transformedPoint(lastX, lastY);
-                ctx.translate(pt.x - dragStart.x, pt.y - dragStart.y);
-                reRender();
-            }
-        }, false);
-        canvas.addEventListener('mouseup', function (evt) {
-            dragStart = null;
-            if (!dragged) zoom(evt.shiftKey ? -1 : 1);
-        }, false);
-        var zoom = function (clicks) {
-            var pt = ctx.transformedPoint(lastX, lastY);
-            ctx.translate(pt.x, pt.y);
-            var factor = Math.pow(scaleFactor, clicks);
-            ctx.scale(factor, factor);
-            ctx.translate(-pt.x, -pt.y);
-            reRender();
-        };
-        var handleScroll = function (evt) {
-            var delta;
-            if (evt.detail < 0 || evt.wheelDelta > 0) delta = zoomFactorDelta;
-            else delta = -1 * zoomFactorDelta;
-            if (delta) zoom(delta);
-            return evt.preventDefault() && false;
-        };
-        canvas.addEventListener('DOMMouseScroll', handleScroll, false);
-        canvas.addEventListener('mousewheel', handleScroll, false);
+        //        canvas.addEventListener('mousedown', function (evt) {
+        //            document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+        //            lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
+        //            lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
+        //            dragStart = ctx.transformedPoint(lastX, lastY);
+        //            dragged = false;
+        //        }, false);
+        //        canvas.addEventListener('mousemove', function (evt) {
+        //            lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
+        //            lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
+        //            dragged = true;
+        //            if (dragStart) {
+        //                var pt = ctx.transformedPoint(lastX, lastY);
+        //                ctx.translate(pt.x - dragStart.x, pt.y - dragStart.y);
+        //                reRender();
+        //            }
+        //        }, false);
+        //        canvas.addEventListener('mouseup', function (evt) {
+        //            dragStart = null;
+        //            if (!dragged) zoom(evt.shiftKey ? -1 : 1);
+        //        }, false);
+        //        var zoom = function (clicks) {
+        //            var pt = ctx.transformedPoint(lastX, lastY);
+        //            ctx.translate(pt.x, pt.y);
+        //            var factor = Math.pow(scaleFactor, clicks);
+        //            ctx.scale(factor, factor);
+        //            ctx.translate(-pt.x, -pt.y);
+        //            reRender();
+        //        };
+        //        var handleScroll = function (evt) {
+        //            var delta;
+        //            if (evt.detail < 0 || evt.wheelDelta > 0) delta = zoomFactorDelta;
+        //            else delta = -1 * zoomFactorDelta;
+        //            if (delta) zoom(delta);
+        //            return evt.preventDefault() && false;
+        //        };
+        //        canvas.addEventListener('DOMMouseScroll', handleScroll, false);
+        //        canvas.addEventListener('mousewheel', handleScroll, false);
 
     };
 
@@ -504,6 +507,10 @@ define(function (require, exports) {
         }
     }
 
+    function renderLayer(layerNum) {
+        render(layerNum, 0, model[layerNum].length);
+    }
+
     function doRender(mdl, layerNum) {
         var mdlInfo;
         model = mdl;
@@ -553,6 +560,7 @@ define(function (require, exports) {
     exports.render = render;
     exports.getModelNumLayers = getModelNumLayers;
     exports.getLayerNumSegments = getLayerNumSegments;
+    exports.renderLayer = renderLayer;
     exports.doRender = doRender;
     exports.getZ = getZ;
 });

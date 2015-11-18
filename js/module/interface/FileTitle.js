@@ -21,6 +21,10 @@ define(function (require, exports) {
         document.getElementById('loadGCode').addEventListener('click', function (uploader) {
             uploader.target.value = '';
         });
+
+        document.getElementById('gcodeRangeSlider').addEventListener('change', function (event) {
+            GlobalVar.gCodePainter.paintLayer(event.target.valueAsNumber);
+        });
     }
 
     exports.getMenuContent = getMenuContent;
