@@ -156,6 +156,11 @@ define(function (require, exports) {
 
     var startCanvas = function () {
         canvas = document.createElement('canvas');
+        var cxt = canvas.getContext('2d');
+        cxt.canvas.style.width = '800px';
+        cxt.canvas.style.height = '600px';
+        cxt.canvas.width = 800;
+        cxt.canvas.height = 600;
 
         document.getElementById('RenderView').appendChild(canvas);
         //canvas = document.getElementById('GCodeCanvas');

@@ -25,6 +25,8 @@ define(function (require) {
 
     GCodePainter.prototype._initWorker = function () {
 
+        var loadingText = '';
+
         this._worker = new Worker('js/module/component/GCodeWorker.js');
 
         this._worker.onmessage = function (event) {
@@ -40,7 +42,7 @@ define(function (require) {
             case 'analyzeDone':
                 //                var resultSet = [];
 
-                //setProgress('analyzeProgress', 100);
+                setProgress(100);
                 GCodeReader.processAnalyzeModelDone(data.msg);
                 GCodeReader.passDataToRenderer();
                 //initSliders();
@@ -56,10 +58,18 @@ define(function (require) {
                 break;
             case 'returnMultiLayer':
                 GCodeReader.processMultiLayerFromWorker(data.msg);
-                //setProgress('loadProgress', data.msg.progress);
+                loadingText += '.';
+                setProgress('loading ' + loadingText);
+                if (loadingText.length > 4) {
+                    loadingText = '.';
+                }
                 break;
             case "analyzeProgress":
-                //setProgress('analyzeProgress', data.msg.progress);
+                loadingText += '.';
+                setProgress('loading ' + loadingText);
+                if (loadingText.length > 4) {
+                    loadingText = '.';
+                }
                 break;
             default:
                 console.log("default msg received" + data.cmd);
@@ -115,6 +125,10 @@ define(function (require) {
     GCodePainter.prototype.onWindowResize = function () {
 
     };
+
+    function setProgress(number) {
+        document.getElementById('StatePanel').innerHTML = number;
+    }
 
     return GCodePainter;
 });
