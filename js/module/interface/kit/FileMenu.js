@@ -17,7 +17,7 @@ define(function (require, exports) {
                     itemContent: '<input type="file" id="loadGCode" />',
                 }, {
                     itemID: 'gcodeSlider',
-                    itemContent: '<input id="gcodeRangeSlider" type="range" min="0" max="100" value="70"/>'
+                    itemContent: '<input id="gcodeRangeSlider" type="range" min="0" max="100" value="1"/>'
                 }]
             })
         };

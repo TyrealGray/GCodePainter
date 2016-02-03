@@ -45,6 +45,8 @@ define(function (require) {
                 setProgress(100);
                 GCodeReader.processAnalyzeModelDone(data.msg);
                 GCodeReader.passDataToRenderer();
+
+                document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
                 //initSliders();
                 //printModelInfo();
                 //printLayerInfo(0);
