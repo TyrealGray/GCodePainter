@@ -20,7 +20,11 @@ define(function (require) {
     };
 
     GCodePainter.prototype._initCanvas = function () {
+        this._canvas = document.createElement('canvas');
 
+        document.getElementById('RenderView').appendChild(this._canvas);
+
+        GCodeRender.init(this._canvas);
     };
 
     GCodePainter.prototype._initWorker = function () {

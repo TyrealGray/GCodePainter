@@ -154,15 +154,15 @@ define(function (require, exports) {
     }
 
 
-    var startCanvas = function () {
-        canvas = document.createElement('canvas');
+    var startCanvas = function (domCanvas) {
+        canvas = domCanvas;
         var cxt = canvas.getContext('2d');
         cxt.canvas.style.width = '800px';
         cxt.canvas.style.height = '600px';
         cxt.canvas.width = 800;
         cxt.canvas.height = 600;
 
-        document.getElementById('RenderView').appendChild(canvas);
+        //        document.getElementById('RenderView').appendChild(canvas);
         //canvas = document.getElementById('GCodeCanvas');
 
         if (!canvas.getContext) {
@@ -442,8 +442,8 @@ define(function (require, exports) {
 
 
     ////exports
-    function init() {
-        startCanvas();
+    function init(canvas) {
+        startCanvas(canvas);
         initialized = true;
         ctx.translate((canvas.width - gridSizeX * zoomFactor) / 2, gridSizeY * zoomFactor + (canvas.height - gridSizeY * zoomFactor) / 2);
     }
@@ -470,7 +470,9 @@ define(function (require, exports) {
     function render(layerNum, fromProgress, toProgress) {
         var gCodeOpts = GlobalVar.gCodePainter.getReaderOptions(); //GCODE.gCodeReader.getOptions();
         if (!initialized) {
-            init();
+            //            init();
+            console.error('gCodePainter canvas not initialized');
+            return;
         }
         if (!model) {
             drawGrid();
