@@ -546,7 +546,7 @@ define(function (require, exports) {
         ctx.scale(0.98 * sX, 0.98 * sY);
         ctx.translate(-pt.x, -pt.y);
         //            ctx.scale(scaleF,scaleF);
-        render(layerNum, 0, model[layerNum].length);
+        render(layerNum, 1, model[layerNum].length);
     }
 
     function getZ(layerNum) {

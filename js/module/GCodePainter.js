@@ -72,7 +72,7 @@ define(function (require) {
                 break;
             case "analyzeProgress":
                 loadingText += '.';
-                setProgress('loading ' + loadingText);
+                setProgress('analyze ' + loadingText);
                 if (loadingText.length > 4) {
                     loadingText = '.';
                 }
