@@ -1,3 +1,4 @@
+/* global define,console,window,Uint8Array,ArrayBuffer,Zlib,document,Worker,FileReader */
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
         // AMD
@@ -60,32 +61,28 @@
                 if (lines[i].match(/^(G0|G1|G90|G91|G92|M82|M83|G28)/i)) gcode.push(lines[i]);
             }
             lines = [];
-            //        console.log("GCode prepared");
+
         };
 
         var sortLayers = function () {
             var sortedZ = [];
             var tmpModel = [];
-            //        var cnt = 0;
-            //        console.log(z_heights);
+
             for (var layer in z_heights) {
                 sortedZ[z_heights[layer]] = layer;
-                //            cnt++;
             }
-            //        console.log("cnt is " + cnt);
+
             sortedZ.sort(function (a, b) {
                 return a - b;
             });
-            //        console.log(sortedZ);
-            //        console.log(model.length);
+
             for (var i = 0; i < sortedZ.length; i++) {
-                //            console.log("i is " + i +" and sortedZ[i] is " + sortedZ[i] + "and z_heights[] is " + z_heights[sortedZ[i]] );
+
                 if (typeof (z_heights[sortedZ[i]]) === 'undefined') continue;
                 tmpModel[i] = model[z_heights[sortedZ[i]]];
             }
             model = tmpModel;
-            //        console.log(model.length);
-            //delete tmpModel;
+
         };
 
         var purgeLayers = function () {
@@ -148,7 +145,7 @@
         };
 
         var getParamsFromCura = function (gcode) {
-            //        console.log("cura");
+
             var profileString = gcode.match(/CURA_PROFILE_STRING:((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4}))/m);
             if (profileString) {
                 var raw = window.atob(profileString[1]);
@@ -197,16 +194,12 @@
 
         };
 
-        ///////// exports
         function loadFile(reader) {
-            //            console.log("loadFile");
+
             model = [];
             z_heights = [];
             detectSlicer(reader.target.result);
             lines = reader.target.result.split(/\n/);
-            //reader.target.result = null;
-            //            prepareGCode();
-
 
             gCodePainter.getWorker().postMessage({
                 "cmd": "parseGCode",
@@ -217,7 +210,6 @@
                     }
                 }
             });
-            //delete lines;
         }
 
         function setOption(options) {
@@ -227,27 +219,22 @@
         }
 
         function passDataToRenderer() {
-            //                        console.log(model);
+
             if (gCodeOptions.sortLayers) sortLayers();
-            //            console.log(model);
+
             if (gCodeOptions.purgeEmptyLayers) purgeLayers();
-            //            console.log(model);
+
 
             gCodePainter.doPaint(model, 0);
-            //GCODE.painter.doRender(model, 0);
-            //          GCODE.painter3d.setModel(model);
+
 
         }
 
         function processLayerFromWorker(msg) {
-            //            var cmds = msg.cmds;
-            //            var layerNum = msg.layerNum;
-            //            var zHeightObject = msg.zHeightObject;
-            //            var isEmpty = msg.isEmpty;
-            //            console.log(zHeightObject);
+
             model[msg.layerNum] = msg.cmds;
             z_heights[msg.zHeightObject.zValue] = msg.zHeightObject.layer;
-            //            GCODE.painter.doRender(model, msg.layerNum);
+
         }
 
         function processMultiLayerFromWorker(msg) {
@@ -255,7 +242,7 @@
                 model[msg.layerNum[i]] = msg.model[msg.layerNum[i]];
                 z_heights[msg.zHeightObject.zValue[i]] = msg.layerNum[i];
             }
-            //            console.log(model);
+
         }
 
         function processAnalyzeModelDone(msg) {
@@ -352,7 +339,6 @@
     }());
 
     var gCodeRender = (function () {
-        var GlobalVar = require('module/GlobalVar');
 
         var canvas;
         var ctx;
@@ -365,7 +351,6 @@
         var prevX = 0,
             prevY = 0;
 
-        //    var colorGrid="#bbbbbb", colorLine="#000000";
         var sliderHor, sliderVer;
         var layerNumStore, progressStore = {
             from: 0,
@@ -386,7 +371,7 @@
             showRetracts: true,
             colorGrid: "#bbbbbb",
             extrusionWidth: 1,
-            //        colorLine: ["#000000", "#aabb88",  "#ffe7a0", "#6e7700", "#331a00", "#44ba97", "#08262f", "#db0e00", "#ff9977"],
+
             colorLine: ["#000000", "#45c7ba", "#a9533a", "#ff44cc", "#dd1177", "#eeee22", "#ffbb55", "#ff5511", "#777788", "#ff0000", "#ffff00"],
             colorLineLen: 9,
             colorMove: "#00ff00",
@@ -512,9 +497,6 @@
             cxt.canvas.width = 800;
             cxt.canvas.height = 600;
 
-            //        document.getElementById('RenderView').appendChild(canvas);
-            //canvas = document.getElementById('GCodeCanvas');
-
             if (!canvas.getContext) {
                 throw "exception";
             }
@@ -527,45 +509,6 @@
             ctx.lineWidth = 2;
             ctx.lineCap = 'round';
             trackTransforms(ctx);
-
-            //        canvas.addEventListener('mousedown', function (evt) {
-            //            document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
-            //            lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
-            //            lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
-            //            dragStart = ctx.transformedPoint(lastX, lastY);
-            //            dragged = false;
-            //        }, false);
-            //        canvas.addEventListener('mousemove', function (evt) {
-            //            lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
-            //            lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
-            //            dragged = true;
-            //            if (dragStart) {
-            //                var pt = ctx.transformedPoint(lastX, lastY);
-            //                ctx.translate(pt.x - dragStart.x, pt.y - dragStart.y);
-            //                reRender();
-            //            }
-            //        }, false);
-            //        canvas.addEventListener('mouseup', function (evt) {
-            //            dragStart = null;
-            //            if (!dragged) zoom(evt.shiftKey ? -1 : 1);
-            //        }, false);
-            //        var zoom = function (clicks) {
-            //            var pt = ctx.transformedPoint(lastX, lastY);
-            //            ctx.translate(pt.x, pt.y);
-            //            var factor = Math.pow(scaleFactor, clicks);
-            //            ctx.scale(factor, factor);
-            //            ctx.translate(-pt.x, -pt.y);
-            //            reRender();
-            //        };
-            //        var handleScroll = function (evt) {
-            //            var delta;
-            //            if (evt.detail < 0 || evt.wheelDelta > 0) delta = zoomFactorDelta;
-            //            else delta = -1 * zoomFactorDelta;
-            //            if (delta) zoom(delta);
-            //            return evt.preventDefault() && false;
-            //        };
-            //        canvas.addEventListener('DOMMouseScroll', handleScroll, false);
-            //        canvas.addEventListener('mousewheel', handleScroll, false);
 
         };
 
@@ -612,10 +555,6 @@
             var cmds = model[layerNum];
             var x, y;
 
-            //        if(toProgress === -1){
-            //            toProgress=cmds.length;
-            //        }
-
             if (fromProgress > 0) {
                 prevX = cmds[fromProgress - 1].x * zoomFactor;
                 prevY = -cmds[fromProgress - 1].y * zoomFactor;
@@ -648,7 +587,6 @@
 
             prevZ = getZ(layerNum);
 
-            //        ctx.strokeStyle = renderOptions["colorLine"];
             for (i = fromProgress; i <= toProgress; i++) {
                 ctx.lineWidth = 1;
 
@@ -658,7 +596,7 @@
                     prevX = cmds[i].prevX * zoomFactor;
                     prevY = -cmds[i].prevY * zoomFactor;
                 }
-                //                console.log(cmds[i]);
+
                 if (typeof (cmds[i].x) === 'undefined' || isNaN(cmds[i].x)) x = prevX / zoomFactor;
                 else x = cmds[i].x;
                 if (typeof (cmds[i].y) === 'undefined' || isNaN(cmds[i].y)) y = prevY / zoomFactor;
@@ -674,33 +612,24 @@
                     } else {
                         speedIndex = 0;
                     }
-                    //                    speedIndex = GCODE.ui.ArrayIndexOf(speedsByLayer['extrude'][prevZ], function(obj) {return obj.speed === cmds[i].speed;});
-                    //                } else {
-                    //                    speedIndex = -1;
-                    //                }
+
                     if (speedIndex === -1) {
                         speedIndex = 0;
                     } else if (speedIndex > renderOptions.colorLineLen - 1) {
                         speedIndex = speedIndex % (renderOptions.colorLineLen - 1);
-                        //                console.log("Too much colors");
                     }
                 } else if (renderOptions.showNextLayer && isNextLayer) {
                     speedIndex = 3;
                 } else if (renderOptions.renderErrors) {
                     if (cmds[i].errType === 2) {
                         speedIndex = 9;
-                        //                    console.log("l: " + layerNum + " c: " + i);
                     } else if (cmds[i].errType === 1) {
                         speedIndex = 10;
                     } else {
                         speedIndex = 0;
                     }
                 } else if (renderOptions.renderAnalysis) {
-                    //                if(cmds[i].errType === 2){
-                    //                    speedIndex=-1;
-                    //                }else{
-                    //                    speedIndex=0;
-                    //                }
+
                     if (layerNum !== 0) speedIndex = -1;
                     else speedIndex = 0;
                 } else {
@@ -709,7 +638,6 @@
 
 
                 if (!cmds[i].extrude && !cmds[i].noMove) {
-                    //                ctx.stroke();
                     if (cmds[i].retract == -1) {
                         if (renderOptions.showRetracts) {
 
@@ -728,10 +656,7 @@
                         ctx.lineTo(x * zoomFactor, y * zoomFactor);
                         ctx.stroke();
                     }
-                    //                ctx.strokeStyle = renderOptions["colorLine"][0];
-                    //                ctx.beginPath();
-                    //                console.log("moveto: "+cmds[i].x+":"+cmds[i].y)
-                    //                ctx.moveTo(cmds[i].x*zoomFactor,cmds[i].y*zoomFactor);
+
                 } else if (cmds[i].extrude) {
                     if (cmds[i].retract === 0) {
                         if (speedIndex >= 0) {
@@ -772,15 +697,12 @@
                         ctx.stroke();
                     } else {
                         if (renderOptions.showRetracts) {
-                            //                        ctx.stroke();
                             ctx.strokeStyle = renderOptions.colorRestart;
                             ctx.fillStyle = renderOptions.colorRestart;
                             ctx.beginPath();
                             ctx.arc(prevX, prevY, renderOptions.sizeRetractSpot, 0, Math.PI * 2, true);
                             ctx.stroke();
                             ctx.fill();
-                            //                        ctx.strokeStyle = renderOptions["colorLine"][0];
-                            //                        ctx.beginPath();
                         }
                     }
                 }
@@ -802,7 +724,6 @@
             for (var opt in options) {
                 if (options.hasOwnProperty(opt)) {
                     renderOptions[opt] = options[opt];
-                    //                    console.log("Got a set option call: " + opt + " == " + options[opt]);
                 }
             }
 
@@ -882,8 +803,6 @@
             volSpeedsByLayer = mdlInfo.volSpeedsByLayer;
             extrusionSpeeds = mdlInfo.extrusionSpeeds;
             extrusionSpeedsByLayer = mdlInfo.extrusionSpeedsByLayer;
-            //            console.log(speeds);
-            //            console.log(mdlInfo.min.x + ' ' + mdlInfo.modelSize.x);
             offsetModelX = (gridSizeX / 2 - (mdlInfo.min.x + mdlInfo.modelSize.x / 2)) * zoomFactor;
             offsetModelY = (mdlInfo.min.y + mdlInfo.modelSize.y / 2) * zoomFactor - gridSizeY / 2 * zoomFactor;
             if (ctx) ctx.translate(offsetModelX, offsetModelY);
@@ -895,7 +814,6 @@
             ctx.translate(pt.x, pt.y);
             ctx.scale(0.98 * sX, 0.98 * sY);
             ctx.translate(-pt.x, -pt.y);
-            //            ctx.scale(scaleF,scaleF);
             render(layerNum, 1, model[layerNum].length);
         }
 
@@ -1009,18 +927,6 @@
             gCodeRender.doRender(model, num);
         }
 
-        //        GCodePainter.prototype.getReaderOptions = function () {
-        //            return gCodeReader.getOptions();
-        //        };
-        //
-        //        GCodePainter.prototype.getModelInfo = function () {
-        //            return gCodeReader.getModelInfo();
-        //        };
-        //
-        //        GCodePainter.prototype.getCanvas = function () {
-        //            return gCanvas;
-        //        };
-
         function getWorker() {
             return gWorker;
         }
@@ -1028,10 +934,6 @@
         function paintLayer(layerNum) {
             gCodeRender.renderLayer(layerNum);
         }
-
-        //        GCodePainter.prototype.onWindowResize = function () {
-        //
-        //        };
 
         function setProgress(number) {
             document.getElementById('StatePanel').innerHTML = number;
