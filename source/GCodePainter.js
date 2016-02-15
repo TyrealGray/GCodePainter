@@ -7,11 +7,351 @@
     }
 }(this, function () {
 
-    var GCodeReader = function () {
+    var gCodeReader = function () {
 
+        var gcode, lines;
+        var z_heights = {};
+        var model = [];
+        var max = {
+            x: undefined,
+            y: undefined,
+            z: undefined
+        };
+        var min = {
+            x: undefined,
+            y: undefined,
+            z: undefined
+        };
+        var modelSize = {
+            x: undefined,
+            y: undefined,
+            z: undefined
+        };
+        var filamentByLayer = {};
+        var filamentByExtruder = {};
+        var printTimeByLayer;
+        var totalFilament = 0;
+        var printTime = 0;
+        var totalWeight = 0;
+        var layerHeight = 0;
+        var layerCnt = 0;
+        var layerTotal = 0;
+        var speeds = {};
+        var slicer = 'unknown';
+        var speedsByLayer = {};
+        var volSpeeds = {};
+        var volSpeedsByLayer = {};
+        var extrusionSpeeds = {};
+        var extrusionSpeedsByLayer = {};
+        var gCodeOptions = {
+            sortLayers: false,
+            purgeEmptyLayers: true,
+            analyzeModel: false,
+            filamentType: "ABS",
+            filamentDia: 1.75,
+            nozzleDia: 0.4
+        };
+
+        var prepareGCode = function () {
+            if (!lines) return;
+            gcode = [];
+            var i;
+            for (i = 0; i < lines.length; i++) {
+                if (lines[i].match(/^(G0|G1|G90|G91|G92|M82|M83|G28)/i)) gcode.push(lines[i]);
+            }
+            lines = [];
+            //        console.log("GCode prepared");
+        };
+
+        var sortLayers = function () {
+            var sortedZ = [];
+            var tmpModel = [];
+            //        var cnt = 0;
+            //        console.log(z_heights);
+            for (var layer in z_heights) {
+                sortedZ[z_heights[layer]] = layer;
+                //            cnt++;
+            }
+            //        console.log("cnt is " + cnt);
+            sortedZ.sort(function (a, b) {
+                return a - b;
+            });
+            //        console.log(sortedZ);
+            //        console.log(model.length);
+            for (var i = 0; i < sortedZ.length; i++) {
+                //            console.log("i is " + i +" and sortedZ[i] is " + sortedZ[i] + "and z_heights[] is " + z_heights[sortedZ[i]] );
+                if (typeof (z_heights[sortedZ[i]]) === 'undefined') continue;
+                tmpModel[i] = model[z_heights[sortedZ[i]]];
+            }
+            model = tmpModel;
+            //        console.log(model.length);
+            //delete tmpModel;
+        };
+
+        var purgeLayers = function () {
+            var purge = true;
+            if (!model) {
+                console.log("Something terribly wrong just happened.");
+                return;
+            }
+            for (var i = 0; i < model.length; i++) {
+                purge = true;
+                if (typeof (model[i]) === 'undefined') purge = true;
+                else {
+                    for (var j = 0; j < model[i].length; j++) {
+                        if (model[i][j].extrude) purge = false;
+                    }
+                }
+                if (purge) {
+                    model.splice(i, 1);
+                    i--;
+                }
+            }
+        };
+
+        var getParamsFromKISSlicer = function (gcode) {
+            var nozzle = gcode.match(/extrusion_width_mm\s*=\s*(\d*\.\d+)/m);
+            if (nozzle) {
+                gCodeOptions.nozzleDia = nozzle[1];
+            }
+            var filament = gcode.match(/fiber_dia_mm\s*=\s*(\d*\.\d+)/m);
+            if (filament) {
+                gCodeOptions.filamentDia = filament[1];
+            }
+        };
+
+        var getParamsFromSlic3r = function (gcode) {
+            var nozzle = gcode.match(/nozzle_diameter\s*=\s*(\d*\.\d+)/m);
+            if (nozzle) {
+                gCodeOptions.nozzleDia = nozzle[1];
+            }
+            var filament = gcode.match(/filament_diameter\s*=\s*(\d*\.\d+)/m);
+            if (filament) {
+                gCodeOptions.filamentDia = filament[1];
+            }
+        };
+
+        var getParamsFromSkeinforge = function (gcode) {
+
+            var nozzle = gcode.match(/nozzle_diameter\s*=\s*(\d*\.\d+)/m);
+            if (nozzle) {
+                gCodeOptions.nozzleDia = nozzle[1];
+            }
+            var filament = gcode.match(/Filament_Diameter_(mm)\s*:\s*(\d*\.\d+)/m);
+            if (filament) {
+                gCodeOptions.filamentDia = filament[1];
+            }
+        };
+
+        var getParamsFromMiracleGrue = function (gcode) {
+
+        };
+
+        var getParamsFromCura = function (gcode) {
+            //        console.log("cura");
+            var profileString = gcode.match(/CURA_PROFILE_STRING:((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{4}))/m);
+            if (profileString) {
+                var raw = window.atob(profileString[1]);
+                var array = new Uint8Array(new ArrayBuffer(raw.length));
+
+                var i = 0;
+
+                for (i = 0; i < raw.length; i++) {
+                    array[i] = raw.charCodeAt(i);
+                }
+                var data = new Zlib.inflate(array.subarray(2, array.byteLength - 4));
+                var msg;
+                for (i = 0; i < data.length; i += 1) {
+                    msg += String.fromCharCode(data[i]);
+                }
+                var nozzle = msg.match(/nozzle_size\s*=\s*(\d*\.\d+)/m);
+                if (nozzle) {
+                    gCodeOptions.nozzleDia = nozzle[1];
+                }
+                var filament = msg.match(/filament_diameter\s*=\s*(\d*\.\d+)/m);
+                if (filament) {
+                    gCodeOptions.filamentDia = filament[1];
+                }
+
+            }
+        };
+
+        var detectSlicer = function (gcode) {
+
+            if (gcode.match(/Slic3r/)) {
+                slicer = 'Slic3r';
+                getParamsFromSlic3r(gcode);
+            } else if (gcode.match(/KISSlicer/)) {
+                slicer = 'KISSlicer';
+                getParamsFromKISSlicer(gcode);
+            } else if (gcode.match(/skeinforge/)) {
+                slicer = 'skeinforge';
+                getParamsFromSkeinforge(gcode);
+            } else if (gcode.match(/CURA_PROFILE_STRING/)) {
+                slicer = 'cura';
+                getParamsFromCura(gcode);
+            } else if (gcode.match(/Miracle/)) {
+                slicer = 'makerbot';
+                getParamsFromMiracleGrue(gcode);
+            }
+
+        };
+
+        ///////// exports
+        function loadFile(reader) {
+            //            console.log("loadFile");
+            model = [];
+            z_heights = [];
+            detectSlicer(reader.target.result);
+            lines = reader.target.result.split(/\n/);
+            //reader.target.result = null;
+            //            prepareGCode();
+
+
+            gCodePainter.getWorker().postMessage({
+                "cmd": "parseGCode",
+                "msg": {
+                    gcode: lines,
+                    options: {
+                        firstReport: 5
+                    }
+                }
+            });
+            //delete lines;
+        }
+
+        function setOption(options) {
+            for (var opt in options) {
+                gCodeOptions[opt] = options[opt];
+            }
+        }
+
+        function passDataToRenderer() {
+            //                        console.log(model);
+            if (gCodeOptions.sortLayers) sortLayers();
+            //            console.log(model);
+            if (gCodeOptions.purgeEmptyLayers) purgeLayers();
+            //            console.log(model);
+
+            gCodePainter.doPaint(model, 0);
+            //GCODE.painter.doRender(model, 0);
+            //          GCODE.painter3d.setModel(model);
+
+        }
+
+        function processLayerFromWorker(msg) {
+            //            var cmds = msg.cmds;
+            //            var layerNum = msg.layerNum;
+            //            var zHeightObject = msg.zHeightObject;
+            //            var isEmpty = msg.isEmpty;
+            //            console.log(zHeightObject);
+            model[msg.layerNum] = msg.cmds;
+            z_heights[msg.zHeightObject.zValue] = msg.zHeightObject.layer;
+            //            GCODE.painter.doRender(model, msg.layerNum);
+        }
+
+        function processMultiLayerFromWorker(msg) {
+            for (var i = 0; i < msg.layerNum.length; i++) {
+                model[msg.layerNum[i]] = msg.model[msg.layerNum[i]];
+                z_heights[msg.zHeightObject.zValue[i]] = msg.layerNum[i];
+            }
+            //            console.log(model);
+        }
+
+        function processAnalyzeModelDone(msg) {
+            min = msg.min;
+            max = msg.max;
+            modelSize = msg.modelSize;
+            totalFilament = msg.totalFilament;
+            filamentByLayer = msg.filamentByLayer;
+            filamentByExtruder = msg.filamentByExtruder;
+            speeds = msg.speeds;
+            speedsByLayer = msg.speedsByLayer;
+            printTime = msg.printTime;
+            printTimeByLayer = msg.printTimeByLayer;
+            layerHeight = msg.layerHeight;
+            layerCnt = msg.layerCnt;
+            layerTotal = msg.layerTotal;
+            volSpeeds = msg.volSpeeds;
+            volSpeedsByLayer = msg.volSpeedsByLayer;
+            extrusionSpeeds = msg.extrusionSpeeds;
+            extrusionSpeedsByLayer = msg.extrusionSpeedsByLayer;
+
+            var density = 1;
+            if (gCodeOptions.filamentType === 'ABS') {
+                density = 1.04;
+            } else if (gCodeOptions.filamentType === 'PLA') {
+                density = 1.24;
+            }
+            totalWeight = density * 3.141 * gCodeOptions.filamentDia / 10 * gCodeOptions.filamentDia / 10 / 4 * totalFilament / 10;
+
+            gCodeOptions.wh = parseFloat(gCodeOptions.nozzleDia) / parseFloat(layerHeight);
+            if (slicer === 'Slic3r' || slicer === 'cura') {
+                // slic3r stores actual nozzle diameter, but extrusion is usually slightly thicker, here we compensate for that
+                // kissslicer stores actual extrusion width - so no need for that.
+                gCodeOptions.wh = gCodeOptions.wh * 1.1;
+            }
+        }
+
+        function getLayerFilament(z) {
+            return filamentByLayer[z];
+        }
+
+        function getLayerSpeeds(z) {
+            return speedsByLayer[z] ? speedsByLayer[z] : {};
+        }
+
+        function getModelInfo() {
+            return {
+                min: min,
+                max: max,
+                modelSize: modelSize,
+                totalFilament: totalFilament,
+                filamentByExtruder: filamentByExtruder,
+                speeds: speeds,
+                speedsByLayer: speedsByLayer,
+                printTime: printTime,
+                printTimeByLayer: printTimeByLayer,
+                totalWeight: totalWeight,
+                layerHeight: layerHeight,
+                layerCnt: layerCnt,
+                layerTotal: layerTotal,
+                volSpeeds: volSpeeds,
+                volSpeedsByLayer: volSpeedsByLayer,
+                extrusionSpeeds: extrusionSpeeds,
+                extrusionSpeedsByLayer: extrusionSpeedsByLayer
+            };
+        }
+
+        function getGCodeLines(layer, fromSegments, toSegments) {
+            var i = 0;
+            var result = {
+                first: model[layer][fromSegments].gcodeLine,
+                last: model[layer][toSegments].gcodeLine
+            };
+            return result;
+        }
+
+        function getOptions() {
+            return gCodeOptions;
+        }
+
+        return {
+            loadFile: loadFile,
+            setOption: setOption,
+            passDataToRenderer: passDataToRenderer,
+            processLayerFromWorker: processLayerFromWorker,
+            processMultiLayerFromWorker: processMultiLayerFromWorker,
+            processAnalyzeModelDone: processAnalyzeModelDone,
+            getLayerFilament: getLayerFilament,
+            getLayerSpeeds: getLayerSpeeds,
+            getModelInfo: getModelInfo,
+            getGCodeLines: getGCodeLines,
+            getOptions: getOptions
+        };
     };
 
-    var GCodeRender = function () {
+    var gCodeRender = function () {
         var GlobalVar = require('module/GlobalVar');
 
         var canvas;
@@ -78,7 +418,7 @@
 
 
         var reRender = function () {
-            var gCodeOpts = GlobalVar.gCodePainter.getReaderOptions(); //GCODE.gCodeReader.getOptions();
+            var gCodeOpts = gCodeReader.getOptions();
             var p1 = ctx.transformedPoint(0, 0);
             var p2 = ctx.transformedPoint(canvas.width, canvas.height);
             ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
@@ -478,7 +818,7 @@
         }
 
         function render(layerNum, fromProgress, toProgress) {
-            var gCodeOpts = GlobalVar.gCodePainter.getReaderOptions(); //GCODE.gCodeReader.getOptions();
+            var gCodeOpts = gCodeReader.getOptions();
             if (!initialized) {
                 //            init();
                 console.error('gCodePainter canvas not initialized');
@@ -535,7 +875,7 @@
             prevY = 0;
             if (!initialized) init();
 
-            mdlInfo = GlobalVar.gCodePainter.getModelInfo(); //GCODE.gCodeReader.getModelInfo();
+            mdlInfo = gCodeReader.getModelInfo();
             speeds = mdlInfo.speeds;
             speedsByLayer = mdlInfo.speedsByLayer;
             volSpeeds = mdlInfo.volSpeeds;
@@ -584,120 +924,128 @@
         };
     };
 
-    function GCodePainter() {
+    var gCodePainter = function () {
 
-        this._worker = null;
-        this._canvas = null;
-    }
+        var gWorker = null,
+            gCanvas = null;
 
-    GCodePainter.prototype.init = function () {
+        function init() {
 
-        this._initCanvas();
+            _initCanvas();
 
-        this._initWorker();
-    };
+            _initWorker();
+        }
 
-    GCodePainter.prototype._initCanvas = function () {
-        this._canvas = document.createElement('canvas');
+        function _initCanvas() {
+            gCanvas = document.createElement('canvas');
 
-        document.getElementById('RenderView').appendChild(this._canvas);
+            document.getElementById('RenderView').appendChild(gCanvas);
 
-        GCodeRender.init(this._canvas);
-    };
+            gCodeRender.init(gCanvas);
+        }
 
-    GCodePainter.prototype._initWorker = function () {
+        function _initWorker() {
 
-        var loadingText = '',
-            painterScope = this;
+            var loadingText = '';
 
-        this._worker = new Worker('js/module/component/GCodeWorker.js');
+            gWorker = new Worker('GCodeWorker.js');
 
-        this._worker.onmessage = function (event) {
-            var data = event.data;
-            switch (data.cmd) {
-            case 'returnModel':
+            gWorker.onmessage = function (event) {
+                var data = event.data;
+                switch (data.cmd) {
+                case 'returnModel':
 
-                GlobalVar.gCodePainter.getWorker().postMessage({
-                    "cmd": "analyzeModel",
-                    "msg": {}
-                });
-                break;
-            case 'analyzeDone':
+                    gWorker.postMessage({
+                        "cmd": "analyzeModel",
+                        "msg": {}
+                    });
+                    break;
+                case 'analyzeDone':
 
-                painterScope.setProgress(100);
-                GCodeReader.processAnalyzeModelDone(data.msg);
-                GCodeReader.passDataToRenderer();
+                    gCodePainter.setProgress(100);
+                    gCodeReader.processAnalyzeModelDone(data.msg);
+                    gCodeReader.passDataToRenderer();
 
-                document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
+                    document.getElementById('gcodeRangeSlider').max = gCodeRender.getModelNumLayers() - 1;
 
-                break;
-            case 'returnLayer':
-                GCodeReader.processLayerFromWorker(data.msg);
-                break;
-            case 'returnMultiLayer':
-                GCodeReader.processMultiLayerFromWorker(data.msg);
-                loadingText += '.';
-                painterScope.setProgress('loading ' + loadingText);
-                if (loadingText.length > 4) {
-                    loadingText = '.';
+                    break;
+                case 'returnLayer':
+                    gCodeReader.processLayerFromWorker(data.msg);
+                    break;
+                case 'returnMultiLayer':
+                    gCodeReader.processMultiLayerFromWorker(data.msg);
+                    loadingText += '.';
+                    gCodePainter.setProgress('loading ' + loadingText);
+                    if (loadingText.length > 4) {
+                        loadingText = '.';
+                    }
+                    break;
+                case "analyzeProgress":
+                    loadingText += '.';
+                    gCodePainter.setProgress('loading ' + loadingText);
+                    if (loadingText.length > 4) {
+                        loadingText = '.';
+                    }
+                    break;
+                default:
+                    console.log("default msg received" + data.cmd);
                 }
-                break;
-            case "analyzeProgress":
-                loadingText += '.';
-                painterScope.setProgress('loading ' + loadingText);
-                if (loadingText.length > 4) {
-                    loadingText = '.';
-                }
-                break;
-            default:
-                console.log("default msg received" + data.cmd);
-            }
+            };
+        }
+
+        function loadFile(file) {
+
+            var reader = new FileReader();
+
+            reader.onload = function (theFile) {
+
+                gCodeReader.loadFile(theFile);
+            };
+            reader.readAsText(file);
+
+        }
+
+        function doPaint(model, num) {
+            gCodeRender.doRender(model, num);
+        }
+
+        GCodePainter.prototype.getReaderOptions = function () {
+            return gCodeReader.getOptions();
+        };
+
+        GCodePainter.prototype.getModelInfo = function () {
+            return gCodeReader.getModelInfo();
+        };
+
+        GCodePainter.prototype.getCanvas = function () {
+            return gCanvas;
+        };
+
+        function getWorker() {
+            return gWorker;
+        }
+
+        function paintLayer(layerNum) {
+            gCodeRender.renderLayer(layerNum);
+        }
+
+        //        GCodePainter.prototype.onWindowResize = function () {
+        //
+        //        };
+
+        function setProgress(number) {
+            document.getElementById('StatePanel').innerHTML = number;
+        }
+
+        return {
+            init: init,
+            loadFile: loadFile,
+            doPaint: doPaint,
+            getWorker: getWorker,
+            paintLayer: paintLayer,
+            setProgress: setProgress
         };
     };
 
-    GCodePainter.prototype.loadFile = function (file) {
-
-        var reader = new FileReader();
-
-        reader.onload = function (theFile) {
-
-            GCodeReader.loadFile(theFile);
-        };
-        reader.readAsText(file);
-
-    };
-
-    GCodePainter.prototype.doPaint = function (model, num) {
-        GCodeRender.doRender(model, num);
-    };
-
-    GCodePainter.prototype.getReaderOptions = function () {
-        return GCodeReader.getOptions();
-    };
-
-    GCodePainter.prototype.getModelInfo = function () {
-        return GCodeReader.getModelInfo();
-    };
-
-    GCodePainter.prototype.getCanvas = function () {
-        return this._canvas;
-    };
-
-    GCodePainter.prototype.getWorker = function () {
-        return this._worker;
-    };
-
-    GCodePainter.prototype.paintLayer = function (layerNum) {
-        GCodeRender.renderLayer(layerNum);
-    };
-
-    GCodePainter.prototype.onWindowResize = function () {
-
-    };
-
-    GCodePainter.prototype.setProgress = function (number) {
-        document.getElementById('StatePanel').innerHTML = number;
-    };
-
-    return GCodePainter;
+    return gCodePainter;
 }));
