@@ -7,7 +7,7 @@
     }
 }(this, function () {
 
-    var gCodeReader = function () {
+    var gCodeReader = (function () {
 
         var gcode, lines;
         var z_heights = {};
@@ -349,9 +349,9 @@
             getGCodeLines: getGCodeLines,
             getOptions: getOptions
         };
-    };
+    }());
 
-    var gCodeRender = function () {
+    var gCodeRender = (function () {
         var GlobalVar = require('module/GlobalVar');
 
         var canvas;
@@ -922,9 +922,9 @@
             doRender: doRender,
             getZ: getZ
         };
-    };
+    }());
 
-    var gCodePainter = function () {
+    var gCodePainter = (function () {
 
         var gWorker = null,
             gCanvas = null;
@@ -948,7 +948,7 @@
 
             var loadingText = '';
 
-            gWorker = new Worker('GCodeWorker.js');
+            gWorker = new Worker('source/GCodeWorker.js');
 
             gWorker.onmessage = function (event) {
                 var data = event.data;
@@ -1009,17 +1009,17 @@
             gCodeRender.doRender(model, num);
         }
 
-        GCodePainter.prototype.getReaderOptions = function () {
-            return gCodeReader.getOptions();
-        };
-
-        GCodePainter.prototype.getModelInfo = function () {
-            return gCodeReader.getModelInfo();
-        };
-
-        GCodePainter.prototype.getCanvas = function () {
-            return gCanvas;
-        };
+        //        GCodePainter.prototype.getReaderOptions = function () {
+        //            return gCodeReader.getOptions();
+        //        };
+        //
+        //        GCodePainter.prototype.getModelInfo = function () {
+        //            return gCodeReader.getModelInfo();
+        //        };
+        //
+        //        GCodePainter.prototype.getCanvas = function () {
+        //            return gCanvas;
+        //        };
 
         function getWorker() {
             return gWorker;
@@ -1045,7 +1045,7 @@
             paintLayer: paintLayer,
             setProgress: setProgress
         };
-    };
+    }());
 
     return gCodePainter;
 }));
