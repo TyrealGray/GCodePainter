@@ -1,3 +1,4 @@
+/* global self,setTimeout */
 var gCodeReadWorker = self;
 
 var gcode;
@@ -138,7 +139,6 @@ var purgeLayers = function () {
             layerCnt += 1;
         }
     }
-    //        self.postMessage('LayerCnt: ' + layerCnt);
 };
 
 
@@ -152,7 +152,6 @@ var analyzeModel = function () {
     var speedIndex = 0;
     var type;
     var printTimeAdd = 0;
-    //        var moveTime=0;
 
     for (i = 0; i < model.length; i++) {
         cmds = model[i];
@@ -232,7 +231,7 @@ var analyzeModel = function () {
             }
 
             if (cmds[j].extrude && cmds[j].retract === 0 && x_ok && y_ok) {
-                // we are extruding
+
                 var volPerMM = cmds[j].volPerMM;
                 volPerMM = parseFloat(volPerMM).toFixed(3);
                 var volIndex = volSpeeds.indexOf(volPerMM);
@@ -286,7 +285,7 @@ var doParse = function () {
     var sendMultiLayer = [];
     var sendMultiLayerZ = [];
     var lastSend = 0;
-    //            console.time("parseGCode timer");
+
     var reg = new RegExp(/^(?:G0|G1)\s/i);
     var comment = new RegExp();
     var j, layer = 0,
@@ -315,7 +314,7 @@ var doParse = function () {
     var args;
 
     for (var i = 0; i < gcode.length; i++) {
-        //            for(var len = gcode.length- 1, i=0;i!=len;i++){
+
         x = undefined;
         y = undefined;
         z = undefined;
@@ -328,33 +327,25 @@ var doParse = function () {
         prev_extrude.abs = 0;
         gcode[i] = gcode[i].split(/[\(;]/)[0];
 
-        //                prevRetract=0;
-        //                retract=0;
-        //                if(gcode[i].match(/^(?:G0|G1)\s+/i)){
         if (reg.test(gcode[i])) {
             args = gcode[i].split(/\s/);
             for (j = 0; j < args.length; j++) {
-                //                        console.log(args);
-                //                        if(!args[j])continue;
+
                 argChar = args[j].charAt(0).toLowerCase();
                 switch (argChar) {
                 case 'x':
                     x = args[j].slice(1);
-                    //                            if(x === prevX){
-                    //                                x=undefined;
-                    //                            }
+
                     break;
                 case 'y':
                     y = args[j].slice(1);
-                    //                            if(y===prevY){
-                    //                                y=undefined;
-                    //                            }
+
                     break;
                 case 'z':
                     z = args[j].slice(1);
                     z = Number(z);
                     if (z == prevZ) continue;
-                    //                            z = Number(z);
+
                     if (z_heights.hasOwnProperty(z)) {
                         layer = z_heights[z];
                     } else {
@@ -363,9 +354,7 @@ var doParse = function () {
                     }
                     sendLayer = layer;
                     sendLayerZ = z;
-                    //                                if(parseFloat(prevZ) < )
-                    //                                if(args[j].charAt(1) === "-")layer--;
-                    //                                else layer++;
+
                     prevZ = z;
                     break;
                 case 'e':
@@ -388,13 +377,13 @@ var doParse = function () {
                         prevRetract[extruder] = -1;
                         retract = -1;
                     } else if (prev_extrude.abs === 0) {
-                        //                                        if(prevRetract <0 )prevRetract=retract;
+
                         retract = 0;
                     } else if (prev_extrude.abs > 0 && prevRetract[extruder] < 0) {
                         prevRetract[extruder] = 0;
                         retract = 1;
                     } else {
-                        //                                        prevRetract = retract;
+
                         retract = 0;
                     }
                     prev_extrude[argChar] = numSlice;
@@ -416,7 +405,7 @@ var doParse = function () {
                 volPerMM = Number(prev_extrude.abs / Math.sqrt((prevX - x) * (prevX - x) + (prevY - y) * (prevY - y)));
             }
             if (!model[layer]) model[layer] = [];
-            //if(typeof(x) !== 'undefined' || typeof(y) !== 'undefined' ||typeof(z) !== 'undefined'||retract!=0)
+
             model[layer][model[layer].length] = {
                 x: Number(x),
                 y: Number(y),
@@ -433,7 +422,7 @@ var doParse = function () {
                 gcodeLine: Number(i),
                 volPerMM: typeof (volPerMM) === 'undefined' ? -1 : volPerMM
             };
-            //{x: x, y: y, z: z, extrude: extrude, retract: retract, noMove: false, extrusion: (extrude||retract)?prev_extrude["abs"]:0, prevX: prevX, prevY: prevY, prevZ: prevZ, speed: lastF, gcodeLine: i};
+
             if (typeof (x) !== 'undefined') prevX = x;
             if (typeof (y) !== 'undefined') prevY = y;
         } else if (gcode[i].match(/^(?:M82)/i)) {
@@ -474,7 +463,7 @@ var doParse = function () {
                     else {
                         prev_extrude[argChar] = numSlice;
                     }
-                    //                            prevZ = z;
+
                     break;
                 default:
                     break;
@@ -526,7 +515,7 @@ var doParse = function () {
                     break;
                 }
             }
-            // G28 with no arguments
+
             if (args.length == 1) {
                 //need to init values to default here
             }
@@ -541,12 +530,9 @@ var doParse = function () {
                 }
                 prevZ = z;
             }
-            //                x=0, y=0,z=0,prevZ=0, extrude=false;
-            //                if(typeof(prevX) === 'undefined'){prevX=0;}
-            //                if(typeof(prevY) === 'undefined'){prevY=0;}
 
             if (!model[layer]) model[layer] = [];
-            //                if(typeof(x) !== 'undefined' || typeof(y) !== 'undefined' ||typeof(z) !== 'undefined'||retract!=0)
+
             model[layer][model[layer].length] = {
                 x: Number(x),
                 y: Number(y),
@@ -562,11 +548,9 @@ var doParse = function () {
                 speed: Number(lastF),
                 gcodeLine: Number(i)
             };
-            //                if(typeof(x) !== 'undefined' || typeof(y) !== 'undefined' ||typeof(z) !== 'undefined') model[layer][model[layer].length] = {x: x, y: y, z: z, extrude: extrude, retract: retract, noMove:false, extrusion: (extrude||retract)?prev_extrude["abs"]:0, prevX: prevX, prevY: prevY, prevZ: prevZ, speed: lastF, gcodeLine: parseFloat(i)};
+
         }
         if (typeof (sendLayer) !== "undefined") {
-            //                sendLayerToParent(sendLayer, sendLayerZ, i/gcode.length*100);
-            //                sendLayer = undefined;
 
             if (i - lastSend > gcode.length * 0.02 && sendMultiLayer.length !== 0) {
                 lastSend = i;
@@ -580,12 +564,8 @@ var doParse = function () {
             sendLayerZ = undefined;
         }
     }
-    //        sendMultiLayer[sendMultiLayer.length] = layer;
-    //        sendMultiLayerZ[sendMultiLayerZ.length] = z;
-    sendMultiLayerToParent(sendMultiLayer, sendMultiLayerZ, i / gcode.length * 100);
 
-    //            if(gCodeOptions["sortLayers"])sortLayers();
-    //            if(gCodeOptions["purgeEmptyLayers"])purgeLayers();
+    sendMultiLayerToParent(sendMultiLayer, sendMultiLayerZ, i / gcode.length * 100);
 
 };
 
@@ -657,7 +637,6 @@ var setOption = function (options) {
 gCodeReadWorker.onmessage = function (event) {
 
     var data = event.data;
-    // for some reason firefox doesn't garbage collect when something inside closures is deleted, so we delete and recreate whole object eaech time
     switch (data.cmd) {
     case 'parseGCode':
         parseGCode(data.msg);
@@ -674,7 +653,8 @@ gCodeReadWorker.onmessage = function (event) {
     }
 };
 
-//if you need to sure work is loaded,you can use this timer to track
 setTimeout(function () {
-    gCodeReadWorker.postMessage('loaded');
+    gCodeReadWorker.postMessage({
+        'cmd': ' loaded'
+    });
 }, 1000);

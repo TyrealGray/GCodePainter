@@ -4,7 +4,7 @@
         // AMD
         define([], factory);
     } else {
-        root.returnExports = factory();
+        root.gCodePainter = factory();
     }
 }(this, function () {
 
