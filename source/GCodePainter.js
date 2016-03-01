@@ -6,7 +6,7 @@
     } else {
         root.gCodePainter = factory();
     }
-}(this, function () {
+} (this, function () {
 
     var gCodeReader = (function () {
 
@@ -336,7 +336,7 @@
             getGCodeLines: getGCodeLines,
             getOptions: getOptions
         };
-    }());
+    } ());
 
     var gCodeRender = (function () {
 
@@ -840,7 +840,7 @@
             doRender: doRender,
             getZ: getZ
         };
-    }());
+    } ());
 
     var gCodePainter = (function () {
 
@@ -871,42 +871,42 @@
             gWorker.onmessage = function (event) {
                 var data = event.data;
                 switch (data.cmd) {
-                case 'returnModel':
+                    case 'returnModel':
 
-                    gWorker.postMessage({
-                        "cmd": "analyzeModel",
-                        "msg": {}
-                    });
-                    break;
-                case 'analyzeDone':
+                        gWorker.postMessage({
+                            "cmd": "analyzeModel",
+                            "msg": {}
+                        });
+                        break;
+                    case 'analyzeDone':
 
-                    gCodePainter.setProgress(100);
-                    gCodeReader.processAnalyzeModelDone(data.msg);
-                    gCodeReader.passDataToRenderer();
+                        gCodePainter.setProgress(100);
+                        gCodeReader.processAnalyzeModelDone(data.msg);
+                        gCodeReader.passDataToRenderer();
 
-                    document.getElementById('gcodeRangeSlider').max = gCodeRender.getModelNumLayers() - 1;
+                        document.getElementById('gcodeRangeSlider').max = gCodeRender.getModelNumLayers() - 1;
 
-                    break;
-                case 'returnLayer':
-                    gCodeReader.processLayerFromWorker(data.msg);
-                    break;
-                case 'returnMultiLayer':
-                    gCodeReader.processMultiLayerFromWorker(data.msg);
-                    loadingText += '.';
-                    gCodePainter.setProgress('loading ' + loadingText);
-                    if (loadingText.length > 4) {
-                        loadingText = '.';
-                    }
-                    break;
-                case "analyzeProgress":
-                    loadingText += '.';
-                    gCodePainter.setProgress('loading ' + loadingText);
-                    if (loadingText.length > 4) {
-                        loadingText = '.';
-                    }
-                    break;
-                default:
-                    console.log("default msg received" + data.cmd);
+                        break;
+                    case 'returnLayer':
+                        gCodeReader.processLayerFromWorker(data.msg);
+                        break;
+                    case 'returnMultiLayer':
+                        gCodeReader.processMultiLayerFromWorker(data.msg);
+                        loadingText += '.';
+                        gCodePainter.setProgress('loading ' + loadingText);
+                        if (loadingText.length > 4) {
+                            loadingText = '.';
+                        }
+                        break;
+                    case "analyzeProgress":
+                        loadingText += '.';
+                        gCodePainter.setProgress('loading ' + loadingText);
+                        if (loadingText.length > 4) {
+                            loadingText = '.';
+                        }
+                        break;
+                    default:
+                        console.log("default msg received" + data.cmd);
                 }
             };
         }
@@ -921,6 +921,43 @@
             };
             reader.readAsText(file);
 
+        }
+
+        function loadUrl(url) {
+
+            var reader = {
+                target: {
+                    result: null
+                }
+            };
+
+            var request = new XMLHttpRequest();
+            request.overrideMimeType('text/plain');
+            request.open('GET', url, true);
+
+            request.addEventListener('load', function (event) {
+
+                var response = event.target.response;
+
+                reader.target.result = response;
+
+                if (this.status === 200) {
+
+                    GCodeReader.loadFile(reader);
+
+                } else if (this.status === 0) {
+
+                    // Some browsers return HTTP Status 0 when using non-http protocol
+                    // e.g. 'file://' or 'data://'. Handle as success.
+
+                    console.warn('THREE.XHRLoader: HTTP Status 0 received.');
+
+                    GCodeReader.loadFile(reader);
+                }
+
+            }, false);
+
+            request.send(null);
         }
 
         function doPaint(model, num) {
@@ -942,12 +979,13 @@
         return {
             init: init,
             loadFile: loadFile,
+            loadUrl: loadUrl,
             doPaint: doPaint,
             getWorker: getWorker,
             paintLayer: paintLayer,
             setProgress: setProgress
         };
-    }());
+    } ());
 
     return gCodePainter;
 }));
