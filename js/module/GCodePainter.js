@@ -36,49 +36,49 @@ define(function (require) {
         this._worker.onmessage = function (event) {
             var data = event.data;
             switch (data.cmd) {
-            case 'returnModel':
-                //setProgress('loadProgress', 100);
-                GlobalVar.gCodePainter.getWorker().postMessage({
-                    "cmd": "analyzeModel",
-                    "msg": {}
-                });
-                break;
-            case 'analyzeDone':
-                //                var resultSet = [];
+                case 'returnModel':
+                    //setProgress('loadProgress', 100);
+                    GlobalVar.gCodePainter.getWorker().postMessage({
+                        "cmd": "analyzeModel",
+                        "msg": {}
+                    });
+                    break;
+                case 'analyzeDone':
+                    //                var resultSet = [];
 
-                setProgress(100);
-                GCodeReader.processAnalyzeModelDone(data.msg);
-                GCodeReader.passDataToRenderer();
+                    setProgress(100);
+                    GCodeReader.processAnalyzeModelDone(data.msg);
+                    GCodeReader.passDataToRenderer();
 
-                document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
-                //initSliders();
-                //printModelInfo();
-                //printLayerInfo(0);
-                //chooseAccordion('infoAccordionTab');
-                //$('#myTab').find('a[href="#tab2d"]').tab('show');
-                //$('#runAnalysisButton').removeClass('disabled');
-                break;
-            case 'returnLayer':
-                GCodeReader.processLayerFromWorker(data.msg);
-                //setProgress('loadProgress', data.msg.progress);
-                break;
-            case 'returnMultiLayer':
-                GCodeReader.processMultiLayerFromWorker(data.msg);
-                loadingText += '.';
-                setProgress('loading ' + loadingText);
-                if (loadingText.length > 4) {
-                    loadingText = '.';
-                }
-                break;
-            case "analyzeProgress":
-                loadingText += '.';
-                setProgress('analyze ' + loadingText);
-                if (loadingText.length > 4) {
-                    loadingText = '.';
-                }
-                break;
-            default:
-                console.log("default msg received" + data.cmd);
+                    document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
+                    //initSliders();
+                    //printModelInfo();
+                    //printLayerInfo(0);
+                    //chooseAccordion('infoAccordionTab');
+                    //$('#myTab').find('a[href="#tab2d"]').tab('show');
+                    //$('#runAnalysisButton').removeClass('disabled');
+                    break;
+                case 'returnLayer':
+                    GCodeReader.processLayerFromWorker(data.msg);
+                    //setProgress('loadProgress', data.msg.progress);
+                    break;
+                case 'returnMultiLayer':
+                    GCodeReader.processMultiLayerFromWorker(data.msg);
+                    loadingText += '.';
+                    setProgress('loading ' + loadingText);
+                    if (loadingText.length > 4) {
+                        loadingText = '.';
+                    }
+                    break;
+                case "analyzeProgress":
+                    loadingText += '.';
+                    setProgress('analyze ' + loadingText);
+                    if (loadingText.length > 4) {
+                        loadingText = '.';
+                    }
+                    break;
+                default:
+                    console.log("default msg received" + data.cmd);
             }
         };
     };
@@ -103,6 +103,43 @@ define(function (require) {
         reader.readAsText(file);
 
     };
+
+    GCodePainter.prototype.loadUrl = function (url) {
+
+        var reader = {
+            target: {
+                result: null
+            }
+        };
+
+        var request = new XMLHttpRequest();
+        request.overrideMimeType('text/plain');
+        request.open('GET', url, true);
+
+        request.addEventListener('load', function (event) {
+
+            var response = event.target.response;
+            
+            reader.target.result = response;
+
+            if (this.status === 200) {
+
+                GCodeReader.loadFile(reader);
+
+            } else if (this.status === 0) {
+
+                // Some browsers return HTTP Status 0 when using non-http protocol
+                // e.g. 'file://' or 'data://'. Handle as success.
+
+                console.warn('THREE.XHRLoader: HTTP Status 0 received.');
+
+                GCodeReader.loadFile(reader);
+            }
+
+        }, false);
+        
+        request.send( null );
+    }
 
     GCodePainter.prototype.doPaint = function (model, num) {
         GCodeRender.doRender(model, num);
