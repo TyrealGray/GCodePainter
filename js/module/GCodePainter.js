@@ -131,7 +131,7 @@ define(function (require) {
                 // Some browsers return HTTP Status 0 when using non-http protocol
                 // e.g. 'file://' or 'data://'. Handle as success.
 
-                console.warn('THREE.XHRLoader: HTTP Status 0 received.');
+                console.warn('HTTP Status 0 received.');
 
                 GCodeReader.loadFile(reader);
             }
