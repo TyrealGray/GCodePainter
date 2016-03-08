@@ -28,6 +28,8 @@ define(function (require) {
     };
 
     GCodePainter.prototype._initWorker = function () {
+        
+        var scope = this;
 
         var loadingText = '';
 
@@ -51,6 +53,9 @@ define(function (require) {
                     GCodeReader.passDataToRenderer();
 
                     document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
+                    
+                    scope.paintLayer(1);
+                    
                     //initSliders();
                     //printModelInfo();
                     //printLayerInfo(0);

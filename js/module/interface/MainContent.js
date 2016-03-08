@@ -36,9 +36,9 @@ define(function (require) {
         GlobalVar.gCodePainter = new GCodePainter();
         GlobalVar.gCodePainter.init();
         
-        // setTimeout(function() {
-        //     GlobalVar.gCodePainter.loadUrl('./source/test.gcode');
-        // }, 1000);
+        setTimeout(function() {
+            GlobalVar.gCodePainter.loadUrl('./source/test.gcode');
+        }, 1000);
     };
 
     MainContent.prototype._bingPageEvent = function () {
