@@ -847,17 +847,17 @@
         var gWorker = null,
             gCanvas = null;
 
-        function init() {
+        function init(divID) {
 
-            _initCanvas();
+            _initCanvas(divID);
 
             _initWorker();
         }
 
-        function _initCanvas() {
+        function _initCanvas(divID) {
             gCanvas = document.createElement('canvas');
 
-            document.getElementById('RenderView').appendChild(gCanvas);
+            document.getElementById(divID).appendChild(gCanvas);
 
             gCodeRender.init(gCanvas);
         }
@@ -880,7 +880,7 @@
                         break;
                     case 'analyzeDone':
 
-                        gCodePainter.setProgress(100);
+                        gCodePainter.onParseProgress(100);
                         gCodeReader.processAnalyzeModelDone(data.msg);
                         gCodeReader.passDataToRenderer();
 
@@ -893,14 +893,14 @@
                     case 'returnMultiLayer':
                         gCodeReader.processMultiLayerFromWorker(data.msg);
                         loadingText += '.';
-                        gCodePainter.setProgress('loading ' + loadingText);
+                        gCodePainter.onParseProgress('loading ' + loadingText);
                         if (loadingText.length > 4) {
                             loadingText = '.';
                         }
                         break;
                     case "analyzeProgress":
                         loadingText += '.';
-                        gCodePainter.setProgress('loading ' + loadingText);
+                        gCodePainter.onParseProgress('loading ' + loadingText);
                         if (loadingText.length > 4) {
                             loadingText = '.';
                         }
@@ -972,7 +972,7 @@
             gCodeRender.renderLayer(layerNum);
         }
 
-        function setProgress(number) {
+        function onParseProgress(number) {
             document.getElementById('StatePanel').innerHTML = number;
         }
 
@@ -983,7 +983,7 @@
             doPaint: doPaint,
             getWorker: getWorker,
             paintLayer: paintLayer,
-            setProgress: setProgress
+            onParseProgress: onParseProgress
         };
     } ());
 

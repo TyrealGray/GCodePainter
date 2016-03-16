@@ -28,6 +28,8 @@ define(function (require) {
     };
 
     GCodePainter.prototype._initWorker = function () {
+        
+        var painterScope = this;
 
         var loadingText = '';
 
@@ -46,7 +48,7 @@ define(function (require) {
                 case 'analyzeDone':
                     //                var resultSet = [];
 
-                    setProgress(100);
+                    painterScope.onParseProgress(100);
                     GCodeReader.processAnalyzeModelDone(data.msg);
                     GCodeReader.passDataToRenderer();
 
@@ -65,14 +67,14 @@ define(function (require) {
                 case 'returnMultiLayer':
                     GCodeReader.processMultiLayerFromWorker(data.msg);
                     loadingText += '.';
-                    setProgress('loading ' + loadingText);
+                    painterScope.onParseProgress('loading ' + loadingText);
                     if (loadingText.length > 4) {
                         loadingText = '.';
                     }
                     break;
                 case "analyzeProgress":
                     loadingText += '.';
-                    setProgress('analyze ' + loadingText);
+                    painterScope.onParseProgress('analyze ' + loadingText);
                     if (loadingText.length > 4) {
                         loadingText = '.';
                     }
@@ -170,12 +172,8 @@ define(function (require) {
     };
     
     GCodePainter.prototype.onParseProgress = function(number){
-        
-    };
-
-    function setProgress(number) {
         document.getElementById('StatePanel').innerHTML = number;
-    }
+    };
 
     return GCodePainter;
 });
