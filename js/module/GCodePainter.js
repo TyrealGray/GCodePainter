@@ -12,17 +12,17 @@ define(function (require) {
         this._canvas = null;
     }
 
-    GCodePainter.prototype.init = function () {
+    GCodePainter.prototype.init = function (divID) {
 
-        this._initCanvas();
+        this._initCanvas(divID);
 
         this._initWorker();
     };
 
-    GCodePainter.prototype._initCanvas = function () {
+    GCodePainter.prototype._initCanvas = function (divID) {
         this._canvas = document.createElement('canvas');
 
-        document.getElementById('RenderView').appendChild(this._canvas);
+        document.getElementById(divID).appendChild(this._canvas);
 
         GCodeRender.init(this._canvas);
     };
@@ -167,6 +167,10 @@ define(function (require) {
 
     GCodePainter.prototype.onWindowResize = function () {
 
+    };
+    
+    GCodePainter.prototype.onParseProgress = function(number){
+        
     };
 
     function setProgress(number) {
