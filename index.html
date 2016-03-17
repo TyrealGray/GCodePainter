@@ -37,6 +37,45 @@
 <p>A GCodePainter based on html canvas</p>
 
 <h3>
+<a id="api" class="anchor" href="#api" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>API:</h3>
+
+<p>init</p>
+
+<p>loadFile</p>
+
+<p>loadUrl</p>
+
+<p>paintLayer</p>
+
+<p>onParseProgress</p>
+
+<p>onParseDone</p>
+
+<h3>
+<a id="example" class="anchor" href="#example" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Example:</h3>
+
+<pre><code>gCodePainter.init({
+        divID: 'renderView',
+        workPath: 'js'
+});
+
+gCodePainter.onParseDone = function(number) {
+        document.getElementById('gcodeRangeSlider').max = number - 1;
+        document.getElementById('gcodeRangeSlider').value = 1;
+}
+
+document.getElementById('gcodeFileInput').addEventListener('change', function(uploader) {
+        gCodePainter.loadFile(uploader.target.files[0]);
+});
+
+document.getElementById('gcodeRangeSlider').addEventListener('change', function(event) {
+        gCodePainter.paintLayer(event.target.valueAsNumber);
+});
+</code></pre>
+
+<p><strong>For more detail,download release version</strong></p>
+
+<h3>
 <a id="check-this-demoplease-wait-while-gcode-file-is-downloading" class="anchor" href="#check-this-demoplease-wait-while-gcode-file-is-downloading" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a><a href="http://tyrealgray.github.io/GCodePainter/demo.html">check this demo(please wait while gcode file is downloading)</a>
 </h3>
 
