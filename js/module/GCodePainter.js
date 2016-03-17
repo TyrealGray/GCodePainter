@@ -1,5 +1,5 @@
 /* global define,document,alert,Worker,console,FileReader */
-define(function (require) {
+define(function(require) {
     'use strict';
 
     var GCodeReader = require('GCodeReader'),
@@ -12,14 +12,14 @@ define(function (require) {
         this._canvas = null;
     }
 
-    GCodePainter.prototype.init = function (divID) {
+    GCodePainter.prototype.init = function(divID) {
 
         this._initCanvas(divID);
 
         this._initWorker();
     };
 
-    GCodePainter.prototype._initCanvas = function (divID) {
+    GCodePainter.prototype._initCanvas = function(divID) {
         this._canvas = document.createElement('canvas');
 
         document.getElementById(divID).appendChild(this._canvas);
@@ -27,15 +27,15 @@ define(function (require) {
         GCodeRender.init(this._canvas);
     };
 
-    GCodePainter.prototype._initWorker = function () {
-        
+    GCodePainter.prototype._initWorker = function() {
+
         var painterScope = this;
 
         var loadingText = '';
 
         this._worker = new Worker('js/module/component/GCodeWorker.js');
 
-        this._worker.onmessage = function (event) {
+        this._worker.onmessage = function(event) {
             var data = event.data;
             switch (data.cmd) {
                 case 'returnModel':
@@ -48,17 +48,12 @@ define(function (require) {
                 case 'analyzeDone':
                     //                var resultSet = [];
 
-                    painterScope.onParseProgress(100);
+                    painterScope.onParseProgress('100%');
                     GCodeReader.processAnalyzeModelDone(data.msg);
                     GCodeReader.passDataToRenderer();
 
                     document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
-                    //initSliders();
-                    //printModelInfo();
-                    //printLayerInfo(0);
-                    //chooseAccordion('infoAccordionTab');
-                    //$('#myTab').find('a[href="#tab2d"]').tab('show');
-                    //$('#runAnalysisButton').removeClass('disabled');
+
                     break;
                 case 'returnLayer':
                     GCodeReader.processLayerFromWorker(data.msg);
@@ -66,18 +61,14 @@ define(function (require) {
                     break;
                 case 'returnMultiLayer':
                     GCodeReader.processMultiLayerFromWorker(data.msg);
-                    loadingText += '.';
-                    painterScope.onParseProgress('loading ' + loadingText);
-                    if (loadingText.length > 4) {
-                        loadingText = '.';
-                    }
+
+                    painterScope.onParseProgress('loading ' + data.msg.progress.toFixed(1) + '%');
+
                     break;
                 case "analyzeProgress":
-                    loadingText += '.';
-                    painterScope.onParseProgress('analyze ' + loadingText);
-                    if (loadingText.length > 4) {
-                        loadingText = '.';
-                    }
+
+                    painterScope.onParseProgress('analyze ' + data.msg.progress.toFixed(1) + '%');
+
                     break;
                 default:
                     console.log("default msg received" + data.cmd);
@@ -85,11 +76,11 @@ define(function (require) {
         };
     };
 
-    GCodePainter.prototype.loadFile = function (file) {
+    GCodePainter.prototype.loadFile = function(file) {
 
         var reader = new FileReader();
 
-        reader.onload = function (theFile) {
+        reader.onload = function(theFile) {
             //            chooseAccordion('progressAccordionTab');
             //            setProgress('loadProgress', 0);
             //            setProgress('analyzeProgress', 0);
@@ -106,7 +97,7 @@ define(function (require) {
 
     };
 
-    GCodePainter.prototype.loadUrl = function (url) {
+    GCodePainter.prototype.loadUrl = function(url) {
 
         var reader = {
             target: {
@@ -118,10 +109,10 @@ define(function (require) {
         request.overrideMimeType('text/plain');
         request.open('GET', url, true);
 
-        request.addEventListener('load', function (event) {
+        request.addEventListener('load', function(event) {
 
             var response = event.target.response;
-            
+
             reader.target.result = response;
 
             if (this.status === 200) {
@@ -139,39 +130,39 @@ define(function (require) {
             }
 
         }, false);
-        
-        request.send( null );
+
+        request.send(null);
     }
 
-    GCodePainter.prototype.doPaint = function (model, num) {
+    GCodePainter.prototype.doPaint = function(model, num) {
         GCodeRender.doRender(model, num);
     };
 
-    GCodePainter.prototype.getReaderOptions = function () {
+    GCodePainter.prototype.getReaderOptions = function() {
         return GCodeReader.getOptions();
     };
 
-    GCodePainter.prototype.getModelInfo = function () {
+    GCodePainter.prototype.getModelInfo = function() {
         return GCodeReader.getModelInfo();
     };
 
-    GCodePainter.prototype.getCanvas = function () {
+    GCodePainter.prototype.getCanvas = function() {
         return this._canvas;
     };
 
-    GCodePainter.prototype.getWorker = function () {
+    GCodePainter.prototype.getWorker = function() {
         return this._worker;
     };
 
-    GCodePainter.prototype.paintLayer = function (layerNum) {
+    GCodePainter.prototype.paintLayer = function(layerNum) {
         GCodeRender.renderLayer(layerNum);
     };
 
-    GCodePainter.prototype.onWindowResize = function () {
+    GCodePainter.prototype.onWindowResize = function() {
 
     };
-    
-    GCodePainter.prototype.onParseProgress = function(number){
+
+    GCodePainter.prototype.onParseProgress = function(number) {
         document.getElementById('StatePanel').innerHTML = number;
     };
 

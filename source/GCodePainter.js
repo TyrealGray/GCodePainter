@@ -2961,6 +2961,44 @@
             ctx.lineCap = 'round';
             trackTransforms(ctx);
 
+            canvas.addEventListener('mousedown', function(evt) {
+                document.body.style.mozUserSelect = document.body.style.webkitUserSelect = document.body.style.userSelect = 'none';
+                lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
+                lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
+                dragStart = ctx.transformedPoint(lastX, lastY);
+                dragged = false;
+            }, false);
+            canvas.addEventListener('mousemove', function(evt) {
+                lastX = evt.offsetX || (evt.pageX - canvas.offsetLeft);
+                lastY = evt.offsetY || (evt.pageY - canvas.offsetTop);
+                dragged = true;
+                if (dragStart) {
+                    var pt = ctx.transformedPoint(lastX, lastY);
+                    ctx.translate(pt.x - dragStart.x, pt.y - dragStart.y);
+                    reRender();
+                }
+            }, false);
+            canvas.addEventListener('mouseup', function(evt) {
+                dragStart = null;
+                if (!dragged) zoom(evt.shiftKey ? -1 : 1);
+            }, false);
+            var zoom = function(clicks) {
+                var pt = ctx.transformedPoint(lastX, lastY);
+                ctx.translate(pt.x, pt.y);
+                var factor = Math.pow(scaleFactor, clicks);
+                ctx.scale(factor, factor);
+                ctx.translate(-pt.x, -pt.y);
+                reRender();
+            };
+            var handleScroll = function(evt) {
+                var delta;
+                if (evt.detail < 0 || evt.wheelDelta > 0) delta = zoomFactorDelta;
+                else delta = -1 * zoomFactorDelta;
+                if (delta) zoom(delta);
+                return evt.preventDefault() && false;
+            };
+            canvas.addEventListener('DOMMouseScroll', handleScroll, false);
+            canvas.addEventListener('mousewheel', handleScroll, false);
         };
 
         var drawGrid = function() {
@@ -3298,11 +3336,11 @@
         var gWorker = null,
             gCanvas = null;
 
-        function init(divID) {
+        function init(setting) {
 
-            _initCanvas(divID);
+            _initCanvas(setting.divID);
 
-            _initWorker();
+            _initWorker(setting.workPath);
         }
 
         function _initCanvas(divID) {
@@ -3313,11 +3351,11 @@
             gCodeRender.init(gCanvas);
         }
 
-        function _initWorker() {
+        function _initWorker(workPath) {
 
             var loadingText = '';
 
-            gWorker = new Worker('source/GCodeWorker.js');
+            gWorker = new Worker(workPath+'/GCodeWorker.js');
 
             gWorker.onmessage = function(event) {
                 var data = event.data;
@@ -3331,11 +3369,12 @@
                         break;
                     case 'analyzeDone':
 
-                        gCodePainter.onParseProgress(100);
+                        gCodePainter.onParseProgress('100%');
                         gCodeReader.processAnalyzeModelDone(data.msg);
                         gCodeReader.passDataToRenderer();
+                        gCodeRender.renderLayer(1);
 
-                        document.getElementById('gcodeRangeSlider').max = gCodeRender.getModelNumLayers() - 1;
+                        gCodePainter.onParseDone(gCodeRender.getModelNumLayers());
 
                         break;
                     case 'returnLayer':
@@ -3343,18 +3382,11 @@
                         break;
                     case 'returnMultiLayer':
                         gCodeReader.processMultiLayerFromWorker(data.msg);
-                        loadingText += '.';
-                        gCodePainter.onParseProgress('loading ' + loadingText);
-                        if (loadingText.length > 4) {
-                            loadingText = '.';
-                        }
+
+                        gCodePainter.onParseProgress('loading ' + data.msg.progress.toFixed(1) + '%');
                         break;
                     case "analyzeProgress":
-                        loadingText += '.';
-                        gCodePainter.onParseProgress('loading ' + loadingText);
-                        if (loadingText.length > 4) {
-                            loadingText = '.';
-                        }
+                        gCodePainter.onParseProgress('analyze ' + data.msg.progress.toFixed(1) + '%');
                         break;
                     default:
                         console.log("default msg received" + data.cmd);
@@ -3423,8 +3455,12 @@
             gCodeRender.renderLayer(layerNum);
         }
 
-        function onParseProgress(number) {
-            document.getElementById('StatePanel').innerHTML = number;
+        function onParseProgress(message) {
+            console.log('onParseProgress: ' + message);
+        }
+
+        function onParseDone(number) {
+            console.log('onParseDone: layer ' + number);
         }
 
         return {
@@ -3434,7 +3470,8 @@
             doPaint: doPaint,
             getWorker: getWorker,
             paintLayer: paintLayer,
-            onParseProgress: onParseProgress
+            onParseProgress: onParseProgress,
+            onParseDone: onParseDone
         };
     } ());
 
