@@ -1,5 +1,5 @@
 # GCodePainter
-A GCodePainter based on html canvas based on [hudbrog's gCodeViewer](https://github.com/hudbrog/gCodeViewer)
+A GCodePainter html canvas based on [hudbrog's gCodeViewer](https://github.com/hudbrog/gCodeViewer)
 
 ### API:
 init
