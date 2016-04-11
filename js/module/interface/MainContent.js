@@ -34,7 +34,7 @@ define(function (require) {
 
     MainContent.prototype._initGCodePainter = function () {
         GlobalVar.gCodePainter = new GCodePainter();
-        GlobalVar.gCodePainter.init();
+        GlobalVar.gCodePainter.init('RenderView');
     };
 
     MainContent.prototype._bingPageEvent = function () {

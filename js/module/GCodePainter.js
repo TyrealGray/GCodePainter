@@ -1,5 +1,5 @@
 /* global define,document,alert,Worker,console,FileReader */
-define(function (require) {
+define(function(require) {
     'use strict';
 
     var GCodeReader = require('GCodeReader'),
@@ -12,82 +12,75 @@ define(function (require) {
         this._canvas = null;
     }
 
-    GCodePainter.prototype.init = function () {
+    GCodePainter.prototype.init = function(divID) {
 
-        this._initCanvas();
+        this._initCanvas(divID);
 
         this._initWorker();
     };
 
-    GCodePainter.prototype._initCanvas = function () {
+    GCodePainter.prototype._initCanvas = function(divID) {
         this._canvas = document.createElement('canvas');
 
-        document.getElementById('RenderView').appendChild(this._canvas);
+        document.getElementById(divID).appendChild(this._canvas);
 
         GCodeRender.init(this._canvas);
     };
 
-    GCodePainter.prototype._initWorker = function () {
+    GCodePainter.prototype._initWorker = function() {
+
+        var painterScope = this;
 
         var loadingText = '';
 
         this._worker = new Worker('js/module/component/GCodeWorker.js');
 
-        this._worker.onmessage = function (event) {
+        this._worker.onmessage = function(event) {
             var data = event.data;
             switch (data.cmd) {
-            case 'returnModel':
-                //setProgress('loadProgress', 100);
-                GlobalVar.gCodePainter.getWorker().postMessage({
-                    "cmd": "analyzeModel",
-                    "msg": {}
-                });
-                break;
-            case 'analyzeDone':
-                //                var resultSet = [];
+                case 'returnModel':
+                    //setProgress('loadProgress', 100);
+                    GlobalVar.gCodePainter.getWorker().postMessage({
+                        "cmd": "analyzeModel",
+                        "msg": {}
+                    });
+                    break;
+                case 'analyzeDone':
+                    //                var resultSet = [];
 
-                setProgress(100);
-                GCodeReader.processAnalyzeModelDone(data.msg);
-                GCodeReader.passDataToRenderer();
+                    painterScope.onParseProgress('100%');
+                    GCodeReader.processAnalyzeModelDone(data.msg);
+                    GCodeReader.passDataToRenderer();
 
-                document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
-                //initSliders();
-                //printModelInfo();
-                //printLayerInfo(0);
-                //chooseAccordion('infoAccordionTab');
-                //$('#myTab').find('a[href="#tab2d"]').tab('show');
-                //$('#runAnalysisButton').removeClass('disabled');
-                break;
-            case 'returnLayer':
-                GCodeReader.processLayerFromWorker(data.msg);
-                //setProgress('loadProgress', data.msg.progress);
-                break;
-            case 'returnMultiLayer':
-                GCodeReader.processMultiLayerFromWorker(data.msg);
-                loadingText += '.';
-                setProgress('loading ' + loadingText);
-                if (loadingText.length > 4) {
-                    loadingText = '.';
-                }
-                break;
-            case "analyzeProgress":
-                loadingText += '.';
-                setProgress('analyze ' + loadingText);
-                if (loadingText.length > 4) {
-                    loadingText = '.';
-                }
-                break;
-            default:
-                console.log("default msg received" + data.cmd);
+                    document.getElementById('gcodeRangeSlider').max = GCodeRender.getModelNumLayers() - 1;
+
+                    break;
+                case 'returnLayer':
+                    GCodeReader.processLayerFromWorker(data.msg);
+                    //setProgress('loadProgress', data.msg.progress);
+                    break;
+                case 'returnMultiLayer':
+                    GCodeReader.processMultiLayerFromWorker(data.msg);
+
+                    painterScope.onParseProgress('loading ' + data.msg.progress.toFixed(1) + '%');
+
+                    break;
+                case "analyzeProgress":
+
+                    painterScope.onParseProgress('analyze ' + data.msg.progress.toFixed(1) + '%');
+
+                    break;
+                default:
+                    console.log("default msg received" + data.cmd);
             }
         };
     };
 
-    GCodePainter.prototype.loadFile = function (file) {
+    GCodePainter.prototype.loadFile = function(file) {
 
         var reader = new FileReader();
 
-        reader.onload = function (theFile) {
+        reader.onload = function(theFile) {
             //            chooseAccordion('progressAccordionTab');
             //            setProgress('loadProgress', 0);
             //            setProgress('analyzeProgress', 0);
@@ -104,37 +97,74 @@ define(function (require) {
 
     };
 
-    GCodePainter.prototype.doPaint = function (model, num) {
+    GCodePainter.prototype.loadUrl = function(url) {
+
+        var reader = {
+            target: {
+                result: null
+            }
+        };
+
+        var request = new XMLHttpRequest();
+        request.overrideMimeType('text/plain');
+        request.open('GET', url, true);
+
+        request.addEventListener('load', function(event) {
+
+            var response = event.target.response;
+
+            reader.target.result = response;
+
+            if (this.status === 200) {
+
+                GCodeReader.loadFile(reader);
+
+            } else if (this.status === 0) {
+
+                // Some browsers return HTTP Status 0 when using non-http protocol
+                // e.g. 'file://' or 'data://'. Handle as success.
+
+                console.warn('HTTP Status 0 received.');
+
+                GCodeReader.loadFile(reader);
+            }
+
+        }, false);
+
+        request.send(null);
+    }
+
+    GCodePainter.prototype.doPaint = function(model, num) {
         GCodeRender.doRender(model, num);
     };
 
-    GCodePainter.prototype.getReaderOptions = function () {
+    GCodePainter.prototype.getReaderOptions = function() {
         return GCodeReader.getOptions();
     };
 
-    GCodePainter.prototype.getModelInfo = function () {
+    GCodePainter.prototype.getModelInfo = function() {
         return GCodeReader.getModelInfo();
     };
 
-    GCodePainter.prototype.getCanvas = function () {
+    GCodePainter.prototype.getCanvas = function() {
         return this._canvas;
     };
 
-    GCodePainter.prototype.getWorker = function () {
+    GCodePainter.prototype.getWorker = function() {
         return this._worker;
     };
 
-    GCodePainter.prototype.paintLayer = function (layerNum) {
+    GCodePainter.prototype.paintLayer = function(layerNum) {
         GCodeRender.renderLayer(layerNum);
     };
 
-    GCodePainter.prototype.onWindowResize = function () {
+    GCodePainter.prototype.onWindowResize = function() {
 
     };
 
-    function setProgress(number) {
+    GCodePainter.prototype.onParseProgress = function(number) {
         document.getElementById('StatePanel').innerHTML = number;
-    }
+    };
 
     return GCodePainter;
 });
