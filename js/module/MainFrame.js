@@ -16,21 +16,6 @@ define(function (require) {
     MainFrame.prototype._init = function () {
 
         this._mainContent = new MainContent();
-
-//        var w = new Worker('js/module/component/GCodeWorker.js');
-//
-//        w.onmessage = function (event) {
-//            switch (event.data) {
-//            case "loaded":
-//                w.postMessage({
-//                    'msg': 'hello'
-//                });
-//
-//                break;
-//            };
-//
-//            console.log(event.data);
-//        }
     };
 
     MainFrame.prototype.onWindowResize = function () {
