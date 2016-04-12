@@ -46,6 +46,7 @@ define(function (require) {
 
     function loadCssFiles() {
         var fileNames = [
+            'css/loader.css',
             'css/pure-min.css',
             'css/grids-min.css',
             'css/menus-min.css',

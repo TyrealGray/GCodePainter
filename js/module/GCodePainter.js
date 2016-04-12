@@ -56,12 +56,8 @@ define(function (require) {
                     
                     scope.paintLayer(1);
                     
-                    //initSliders();
-                    //printModelInfo();
-                    //printLayerInfo(0);
-                    //chooseAccordion('infoAccordionTab');
-                    //$('#myTab').find('a[href="#tab2d"]').tab('show');
-                    //$('#runAnalysisButton').removeClass('disabled');
+                    document.getElementById('loaderAnimation').style.display = 'none';
+
                     break;
                 case 'returnLayer':
                     GCodeReader.processLayerFromWorker(data.msg);
