@@ -1,4 +1,7 @@
 # GCodePainter
+
+A better version using React.js and Three.js could be found in [here](https://github.com/TyrealGray/GCodePreviewer)
+
 A GCodePainter html canvas based on [hudbrog's gCodeViewer](https://github.com/hudbrog/gCodeViewer)
 
 ### API:
